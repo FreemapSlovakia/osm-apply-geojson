@@ -2,7 +2,7 @@ const { create } = require('xmlbuilder2');
 const fs = require('fs');
 
 if (process.argv.length !== 4) {
-  console.error('Missing exactly 2 arguments.');
+  console.error('Provide exactly 2 arguments.');
   return;
 }
 
