@@ -1,6 +1,6 @@
 # OSM Apply Geojson
 
-Tool for applying way tags from geojson to JOSM \*.osm file.
+Tool for updating way (polygon) tags from geojson to JOSM \*.osm file. It also adds missing polygons.
 
 ## Installation
 
