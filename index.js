@@ -20,6 +20,8 @@ for (const way of obj.osm.way) {
   wayMap[way['@id']] = way;
 }
 
+let newId = -1;
+
 for (const feature of gj.features) {
   if (feature.type !== 'Feature' || feature.geometry.type !== 'Polygon') {
     console.error('Not a ploygon.');
@@ -27,39 +29,68 @@ for (const feature of gj.features) {
 
   const { osm_id: id, full_id, ...restProps } = feature.properties || {};
 
-  const way = wayMap[id];
+  let way = wayMap[id];
 
   if (!way) {
-    console.error(`No object with id=${id} in ${process.argv[2]}.`);
+    if (id) {
+      console.error(`No object with id=${id} in ${process.argv[2]}.`);
 
-    // TODO if id is null then create
-  } else {
-    const tags = Object.fromEntries(
-      (!way.tag
-        ? []
-        : Array.isArray(way.tag)
-        ? way.tag
-        : [way.tag]
-      ).map((tag) => [tag['@k'], tag['@v']])
-    );
-
-    for (let [k, v] of Object.entries(restProps)) {
-      // polish some tags
-      if (k === 'building:type') {
-        k = 'building';
-      } else if (k === 'adrr:housename') {
-        k = 'name';
-      }
-
-      if (v && v !== 'NULL' && tags[k] !== v) {
-        tags[k] = v;
-
-        way['@action'] = 'modify';
-      }
+      continue;
     }
 
-    way.tag = Object.entries(tags).map(([k, v]) => ({ '@k': k, '@v': v }));
+    way = {
+      '@action': 'modify',
+      '@id': newId,
+      '@visible': 'true',
+      nd: [],
+    };
+
+    newId--;
+
+    obj.osm.way.push(way);
+
+    for (const coord of feature.geometry.coordinates[0]) {
+      obj.osm.node.push({
+        '@lat': coord[1],
+        '@lon': coord[0],
+        '@action': 'modify',
+        '@id': newId,
+        '@visible': 'true',
+      });
+
+      way.nd.push({
+        '@ref': newId,
+      });
+
+      newId--;
+    }
   }
+
+  const tags = Object.fromEntries(
+    (!way.tag
+      ? []
+      : Array.isArray(way.tag)
+      ? way.tag
+      : [way.tag]
+    ).map((tag) => [tag['@k'], tag['@v']])
+  );
+
+  for (let [k, v] of Object.entries(restProps)) {
+    // polish some tags
+    if (k === 'building:type') {
+      k = 'building';
+    } else if (k === 'adrr:housename') {
+      k = 'name';
+    }
+
+    if (v && v !== 'NULL' && tags[k] !== v) {
+      tags[k] = v;
+
+      way['@action'] = 'modify';
+    }
+  }
+
+  way.tag = Object.entries(tags).map(([k, v]) => ({ '@k': k, '@v': v }));
 }
 
 console.log(create(obj).end({ prettyPrint: true }));
